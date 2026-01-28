@@ -106,12 +106,52 @@ const SEED_INBOX_STATUS: InboxStatus = {
   "urgentCount": 0
 }
 
+// --- Action Items ---
+
+export interface ActionItem {
+  id: string
+  title: string
+  source: 'granola' | 'linear' | 'email' | 'slack' | 'imessage'
+  sourceDetail: string
+  project: string
+  priority: 'urgent' | 'high' | 'medium' | 'low'
+  dueDate: string
+  status: 'pending' | 'done'
+  assignee: string
+  notes: string
+  completedAt?: string
+}
+
+const SEED_ACTION_ITEMS: ActionItem[] = [
+  {"id":"ai-001","title":"CockroachDB intro call with Miguel Arenas","source":"granola","sourceDetail":"Gavin McNamara and Miguel Arenas","project":"Job Search","priority":"urgent","dueDate":"2026-01-30","status":"pending","assignee":"gavin","notes":"Friday Jan 30 @ 10:00 AM ET. Review company guide before call."},
+  {"id":"ai-002","title":"Take over PR reviews from Graham","source":"granola","sourceDetail":"WNU Daily Standup (1/28)","project":"Why Not Us Labs","priority":"high","dueDate":"2026-01-29","status":"pending","assignee":"gavin","notes":"Graham stepping back from day-to-day. Gavin taking over PR reviews."},
+  {"id":"ai-003","title":"Post-meeting sync with Sammy for QA test planning","source":"granola","sourceDetail":"WNU Daily Standup (1/28)","project":"Real Worth","priority":"high","dueDate":"2026-01-28","status":"pending","assignee":"gavin","notes":"Plan manual QA testing of auth migration with Sammy."},
+  {"id":"ai-004","title":"Sprout Gifts scope control — document $30K additional work","source":"granola","sourceDetail":"WNU Daily Standup (1/28)","project":"Sprout Gifts","priority":"medium","dueDate":"2026-01-31","status":"pending","assignee":"gavin","notes":"Need to document and control scope creep."},
+  {"id":"ai-005","title":"Local business outreach strategy — document plan","source":"granola","sourceDetail":"WNU Daily Standup (1/28)","project":"Oyster Bay","priority":"medium","dueDate":"2026-01-31","status":"pending","assignee":"gavin","notes":"Create outreach strategy for local businesses."},
+  {"id":"ai-006","title":"February roadmap documentation","source":"granola","sourceDetail":"WNU Daily Standup (1/28)","project":"Why Not Us Labs","priority":"high","dueDate":"2026-01-31","status":"pending","assignee":"gavin","notes":"Document Feb roadmap for team."},
+  {"id":"ai-007","title":"Resolve Justin's Slack access","source":"granola","sourceDetail":"Justin & Gav Weekly Sync (1/27)","project":"Why Not Us Labs","priority":"medium","dueDate":"2026-01-29","status":"pending","assignee":"gavin","notes":"Add Justin back to team Slack ($10/month). May take 24h to propagate."},
+  {"id":"ai-008","title":"Address Steve's performance issues","source":"granola","sourceDetail":"Justin & Gav Weekly Sync (1/27)","project":"Why Not Us Labs","priority":"high","dueDate":"2026-01-31","status":"pending","assignee":"gavin","notes":"Missed presentation, poor communication, minimal progress on Linear dashboard over 2 months. Potential termination discussion."},
+  {"id":"ai-009","title":"Cellebrite — group interview with Guardian team PMs","source":"granola","sourceDetail":"Cellebrite Video Interview (1/26)","project":"Job Search","priority":"high","dueDate":"2026-02-06","status":"pending","assignee":"gavin","notes":"Next step: group interview with 1-3 Guardian PMs. Currently scheduling around release mode. Final interview with Head of Product late Feb."},
+  {"id":"ai-010","title":"Follow up with Simone Viganò — ask for demo links","source":"granola","sourceDetail":"Simone Viganò Meeting (1/26)","project":"Networking","priority":"low","dueDate":"2026-01-31","status":"pending","assignee":"gavin","notes":"Simone offered to run sample tests on our bots. Get demo links and documentation for ScopeGuard and Ghost Agent."},
+  {"id":"ai-011","title":"Spirited Hive — start Shopify website updates","source":"granola","sourceDetail":"Spirited Hive Launch Planning (1/23)","project":"Spirited Hive","priority":"high","dueDate":"2026-01-30","status":"pending","assignee":"gavin","notes":"Add Honey Hill Club product to Shopify, update hero tagline to 'It's Tea Time', new hero imagery, update popup. Feb 20 presentation to Jack, March 1 launch."},
+  {"id":"ai-012","title":"Spirited Hive — weekly check-in with Chris (Jan 30)","source":"granola","sourceDetail":"Spirited Hive Launch Planning (1/23)","project":"Spirited Hive","priority":"medium","dueDate":"2026-01-30","status":"pending","assignee":"gavin","notes":"Friday check-in. Then Feb 6, Feb 13. Feb 20 present to Jack."},
+  {"id":"ai-013","title":"Send CV and portfolio to Samuel (AI People recruiter)","source":"granola","sourceDetail":"AI People Intro (1/23)","project":"Job Search","priority":"medium","dueDate":"2026-01-29","status":"pending","assignee":"gavin","notes":"Samuel in London, focusing on healthcare AI, fintech, robotics roles. $200-300K range."},
+  {"id":"ai-014","title":"Sprout Gifts — create Amazon Creator's API application","source":"granola","sourceDetail":"Sprouting All The Way Up (1/25)","project":"Sprout Gifts","priority":"medium","dueDate":"2026-01-31","status":"pending","assignee":"gavin","notes":"Set up in developer console. Also need to complete tax info for affiliate program."},
+  {"id":"ai-015","title":"Sprout Gifts — refresh expired toy curation PDFs from Bobby","source":"granola","sourceDetail":"Sprouting All The Way Up (1/25)","project":"Sprout Gifts","priority":"low","dueDate":"2026-02-07","status":"pending","assignee":"gavin","notes":"Bobby created 50 curated toys per age group but PDFs have expired."},
+  {"id":"ai-016","title":"Real Worth — submit pricing before new App Store build","source":"granola","sourceDetail":"Gav & T Sync: RealWorth (1/21)","project":"Real Worth","priority":"urgent","dueDate":"2026-01-29","status":"pending","assignee":"gavin","notes":"iOS app rejected again for admin issues. Must submit pricing before new builds. Switched to native Apple payment."},
+  {"id":"ai-017","title":"Check Real Worth App Store review status","source":"linear","sourceDetail":"Ongoing","project":"Real Worth","priority":"urgent","dueDate":"2026-01-28","status":"pending","assignee":"gavin","notes":"App was resubmitted. Check if approved or needs fixes."},
+  {"id":"ai-018","title":"Respond to LinkedIn DMs","source":"slack","sourceDetail":"Flagged earlier today","project":"Networking","priority":"medium","dueDate":"2026-01-28","status":"pending","assignee":"gavin","notes":"Simone Viganò (Principled Intelligence) and TCS Global Head CPG lead."},
+  {"id":"ai-019","title":"Respond to Guidepoint expert consultation invitations","source":"email","sourceDetail":"2 pending invitations","project":"Consulting","priority":"medium","dueDate":"2026-01-29","status":"pending","assignee":"gavin","notes":"AI Software + Communications Recording consultations."},
+  {"id":"ai-020","title":"Get Nicolette's additional age ranges for Sprout Gifts","source":"granola","sourceDetail":"Sprouting All The Way Up (1/25)","project":"Sprout Gifts","priority":"medium","dueDate":"2026-02-01","status":"pending","assignee":"gavin","notes":"Need 1-2yr, 2-3yr ranges added to Google Doc."}
+]
+
 // --- Store ---
 
 let drafts: Draft[] = [...SEED_DRAFTS]
 let tasks: Task[] = [...SEED_TASKS]
 let activity: ActivityEntry[] = [...SEED_ACTIVITY]
 let inboxStatus: InboxStatus = { ...SEED_INBOX_STATUS }
+let actionItems: ActionItem[] = [...SEED_ACTION_ITEMS]
 
 export function getDrafts() { return drafts }
 export function setDrafts(d: Draft[]) { drafts = d }
@@ -125,9 +165,13 @@ export function setActivity(a: ActivityEntry[]) { activity = a }
 export function getInboxStatus() { return inboxStatus }
 export function setInboxStatus(s: InboxStatus) { inboxStatus = s }
 
-export function syncAll(data: { drafts?: Draft[]; tasks?: Task[]; activity?: ActivityEntry[]; inboxStatus?: InboxStatus }) {
+export function getActionItems() { return actionItems }
+export function setActionItems(a: ActionItem[]) { actionItems = a }
+
+export function syncAll(data: { drafts?: Draft[]; tasks?: Task[]; activity?: ActivityEntry[]; inboxStatus?: InboxStatus; actionItems?: ActionItem[] }) {
   if (data.drafts) drafts = data.drafts
   if (data.tasks) tasks = data.tasks
   if (data.activity) activity = data.activity
   if (data.inboxStatus) inboxStatus = data.inboxStatus
+  if (data.actionItems) actionItems = data.actionItems
 }
