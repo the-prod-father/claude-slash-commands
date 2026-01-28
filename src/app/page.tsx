@@ -207,14 +207,15 @@ function CategoryBadge({ category }: { category: string }) {
   )
 }
 
-function InboxDraftCard({ draft, onSend, onSave }: {
+function InboxDraftCard({ draft, onSend, onSave, onDelete }: {
   draft: Draft
   onSend: (id: string, body: string) => void
   onSave: (id: string) => void
+  onDelete: (id: string) => void
 }) {
   const [mode, setMode] = useState<'view' | 'edit'>('view')
   const [editBody, setEditBody] = useState(draft.body)
-  const [status, setStatus] = useState<'idle' | 'sent' | 'saved'>('idle')
+  const [status, setStatus] = useState<'idle' | 'sent' | 'saved' | 'deleted'>('idle')
 
   if (status === 'sent') {
     return (
@@ -243,6 +244,22 @@ function InboxDraftCard({ draft, onSend, onSave }: {
           </div>
           <div>
             <p className="text-sm font-medium text-cyan-400">Saved for later</p>
+            <p className="text-xs text-zinc-500">{draft.subject}</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (status === 'deleted') {
+    return (
+      <div className="glass p-5 border-red-500/20 bg-red-950/10 transition-all duration-500 animate-fade-slide-out">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
+            <span className="text-red-400 text-sm">🗑</span>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-red-400">Deleted</p>
             <p className="text-xs text-zinc-500">{draft.subject}</p>
           </div>
         </div>
@@ -310,6 +327,12 @@ function InboxDraftCard({ draft, onSend, onSave }: {
             Cancel
           </button>
         )}
+        <button
+          onClick={() => { setStatus('deleted'); onDelete(draft.id) }}
+          className="px-4 py-2 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 hover:shadow-[0_0_15px_rgba(239,68,68,0.15)] active:scale-[0.97] transition-all duration-200 ml-auto"
+        >
+          🗑 Delete
+        </button>
       </div>
     </div>
   )
@@ -430,6 +453,14 @@ export default function Dashboard() {
     // keep in list but show saved confirmation briefly
     setTimeout(() => {
       setInboxDrafts(prev => prev.filter(d => d.id !== _id))
+    }, 1500)
+  }
+
+  const handleDeleteDraft = async (id: string) => {
+    await fetch(`/api/drafts/${id}/reject`, { method: 'POST' })
+    setInboxStatus(prev => ({ ...prev, pendingCount: Math.max(0, prev.pendingCount - 1) }))
+    setTimeout(() => {
+      setInboxDrafts(prev => prev.filter(d => d.id !== id))
     }, 1500)
   }
 
@@ -607,6 +638,7 @@ export default function Dashboard() {
                   draft={draft}
                   onSend={handleSendDraft}
                   onSave={handleSaveDraft}
+                  onDelete={handleDeleteDraft}
                 />
               ))}
             </div>
