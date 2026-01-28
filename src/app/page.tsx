@@ -53,6 +53,22 @@ interface ReviewItem {
   type: string
 }
 
+interface LinearIssue {
+  id: string
+  identifier: string
+  title: string
+  status: string
+  statusType: string
+  priority: number
+  assignee: { name: string; avatarUrl: string | null } | null
+  labels: string[]
+  updatedAt: string
+}
+
+interface LinearData {
+  [status: string]: LinearIssue[]
+}
+
 // ─── Static Data (not API-driven yet) ───────────────────────
 const WEATHER = { temp: 34, high: 38, low: 28, condition: 'Partly Cloudy', icon: '⛅' }
 // Knicks data fetched live from /api/nba
@@ -338,6 +354,81 @@ function InboxDraftCard({ draft, onSend, onSave, onDelete }: {
   )
 }
 
+const PRIORITY_ICONS: Record<number, string> = { 1: '🔴', 2: '🟠', 3: '🟡', 4: '⚪', 0: '⚪' }
+const STATUS_COLORS: Record<string, string> = {
+  'In Progress': 'bg-blue-400',
+  'Todo': 'bg-yellow-400',
+  'Backlog': 'bg-zinc-500',
+  'Triage': 'bg-purple-400',
+  'Done': 'bg-emerald-400',
+}
+
+function LinearBoard({ data }: { data: LinearData }) {
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({ Backlog: true, Triage: true, Done: true })
+  const statusOrder = ['In Progress', 'Todo', 'Backlog', 'Triage', 'Done']
+  const totalCount = Object.values(data).reduce((s, arr) => s + arr.length, 0)
+
+  const toggle = (s: string) => setCollapsed(prev => ({ ...prev, [s]: !prev[s] }))
+
+  return (
+    <section className="fade-up fade-up-6 glass p-5 sm:p-6 mb-8">
+      <SectionHeader icon="📋" badge={
+        <span className="text-[10px] text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-full border border-indigo-500/15 font-medium">
+          WNU · {totalCount} issues
+        </span>
+      }>
+        Linear Board
+      </SectionHeader>
+      <div className="space-y-3">
+        {statusOrder.map(status => {
+          const issues = data[status] || []
+          if (issues.length === 0) return null
+          const isCollapsed = collapsed[status]
+          return (
+            <div key={status}>
+              <button
+                onClick={() => toggle(status)}
+                className="flex items-center gap-2 w-full text-left py-1.5 px-2 rounded-lg hover:bg-white/[0.02] transition-colors"
+              >
+                <span className={`w-2 h-2 rounded-full ${STATUS_COLORS[status] || 'bg-zinc-500'}`} />
+                <span className="text-xs font-medium text-zinc-300">{status}</span>
+                <span className="text-[10px] text-zinc-600 bg-white/[0.04] px-1.5 py-0.5 rounded-full">{issues.length}</span>
+                <svg
+                  className={`w-3 h-3 text-zinc-600 ml-auto transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'}`}
+                  fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {!isCollapsed && (
+                <div className="mt-1 space-y-0">
+                  {issues.map(issue => (
+                    <a
+                      key={issue.id}
+                      href={`https://linear.app/why-not-us-labs/issue/${issue.identifier}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2.5 py-1.5 px-3 rounded-lg hover:bg-white/[0.03] transition-colors group"
+                    >
+                      <span className="text-xs flex-shrink-0">{PRIORITY_ICONS[issue.priority] || '⚪'}</span>
+                      <span className="text-[11px] font-mono text-zinc-500 flex-shrink-0 w-[52px]">{issue.identifier}</span>
+                      <span className="text-sm text-zinc-300 flex-1 truncate group-hover:text-white transition-colors">{issue.title}</span>
+                      {issue.assignee && (
+                        <span className="text-[10px] text-zinc-600 hidden sm:block flex-shrink-0">{issue.assignee.name}</span>
+                      )}
+                      <span className="text-[10px] text-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">↗</span>
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
 // ─── Main Page ───────────────────────────────────────────────
 export default function Dashboard() {
   const [dateStr, setDateStr] = useState('')
@@ -358,6 +449,8 @@ export default function Dashboard() {
   const [inboxDrafts, setInboxDrafts] = useState<Draft[]>([])
   const [inboxDraftsLoaded, setInboxDraftsLoaded] = useState(false)
   const [sentCount, setSentCount] = useState(0)
+  const [linearData, setLinearData] = useState<LinearData>({})
+  const [linearLoading, setLinearLoading] = useState(true)
 
   const fetchAll = useCallback(async () => {
     const [tasksRes, draftsRes, activityRes, inboxRes] = await Promise.all([
@@ -377,6 +470,21 @@ export default function Dashboard() {
     const i = setInterval(fetchAll, 30000)
     return () => clearInterval(i)
   }, [fetchAll])
+
+  // Linear data fetch
+  useEffect(() => {
+    const fetchLinear = async () => {
+      try {
+        const res = await fetch('/api/linear')
+        const data = await res.json()
+        setLinearData(data)
+      } catch { /* ignore */ }
+      finally { setLinearLoading(false) }
+    }
+    fetchLinear()
+    const i = setInterval(fetchLinear, 300000) // 5 min
+    return () => clearInterval(i)
+  }, [])
 
   // NBA data fetch with auto-refresh during live games
   useEffect(() => {
@@ -759,6 +867,15 @@ export default function Dashboard() {
           </div>
         </div>
       </section>
+
+      {/* ═══ LINEAR BOARD ═══ */}
+      {linearLoading ? (
+        <div className="fade-up fade-up-6 glass p-6 mb-8">
+          <div className="h-6 w-48 bg-white/[0.05] rounded animate-pulse" />
+        </div>
+      ) : Object.keys(linearData).length > 0 && (
+        <LinearBoard data={linearData} />
+      )}
 
       {/* ═══ REVIEW QUEUE ═══ */}
       <section className="fade-up fade-up-7 glass p-5 sm:p-6 mb-8">
