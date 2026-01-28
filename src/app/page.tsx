@@ -76,26 +76,36 @@ export default function Dashboard() {
   
   const tasks: Task[] = [
     // Today - Tuesday Jan 28
-    { id: '1', title: 'Sprout: Test affiliate links in prod', owner: 'gavin', status: 'pending', priority: 'high', category: 'today', createdAt: '2026-01-28' },
-    { id: '2', title: 'BLD: New subscription setup', owner: 'finn', status: 'pending', priority: 'high', category: 'today', createdAt: '2026-01-28' },
-    { id: '3', title: 'Check Real Worth App Store status', owner: 'gavin', status: 'pending', priority: 'high', category: 'today', createdAt: '2026-01-28' },
-    { id: '4', title: 'LinkedIn DMs - respond to all', owner: 'gavin', status: 'pending', priority: 'medium', category: 'today', createdAt: '2026-01-28' },
+    { id: '1', title: 'Slack integration — LIVE ✅', owner: 'finn', status: 'done', priority: 'high', category: 'today', createdAt: '2026-01-28' },
+    { id: '2', title: 'CockroachDB interview prep + voice notes ✅', owner: 'finn', status: 'done', priority: 'high', category: 'today', createdAt: '2026-01-28' },
+    { id: '3', title: 'Finn avatar generated (Arcane-style) ✅', owner: 'finn', status: 'done', priority: 'medium', category: 'today', createdAt: '2026-01-28' },
+    { id: '4', title: 'Gemini API key fixed (removed restrictions) ✅', owner: 'gavin', status: 'done', priority: 'medium', category: 'today', createdAt: '2026-01-28' },
+    { id: '5', title: '#wnu-dev channel summary delivered ✅', owner: 'finn', status: 'done', priority: 'medium', category: 'today', createdAt: '2026-01-28' },
+    { id: '6', title: 'CockroachDB interview moved to Fri 1/31 @ 10am', owner: 'gavin', status: 'done', priority: 'high', category: 'today', createdAt: '2026-01-28' },
+    { id: '7', title: 'iMessage integration setup', owner: 'finn', status: 'pending', priority: 'medium', category: 'today', createdAt: '2026-01-28' },
+    { id: '8', title: 'Check Real Worth App Store status', owner: 'gavin', status: 'pending', priority: 'high', category: 'today', createdAt: '2026-01-28' },
+    { id: '9', title: 'LinkedIn DMs - respond to all', owner: 'gavin', status: 'pending', priority: 'medium', category: 'today', createdAt: '2026-01-28' },
     
     // Recurring (Finn's cron jobs)
-    { id: '5', title: 'Email sweep - 7am', owner: 'finn', status: 'pending', priority: 'high', category: 'recurring', createdAt: '2026-01-28' },
-    { id: '6', title: 'Morning kickoff - 7:30am', owner: 'finn', status: 'pending', priority: 'high', category: 'recurring', createdAt: '2026-01-28' },
-    { id: '7', title: 'Email sweep - 1pm', owner: 'finn', status: 'pending', priority: 'high', category: 'recurring', createdAt: '2026-01-28' },
-    { id: '8', title: 'Email sweep - 9pm', owner: 'finn', status: 'pending', priority: 'high', category: 'recurring', createdAt: '2026-01-28' },
+    { id: '10', title: 'Email sweep - 7am ✅', owner: 'finn', status: 'done', priority: 'high', category: 'recurring', createdAt: '2026-01-28' },
+    { id: '11', title: 'Morning kickoff - 7:30am', owner: 'finn', status: 'pending', priority: 'high', category: 'recurring', createdAt: '2026-01-28' },
+    { id: '12', title: 'Email sweep - 1pm ✅', owner: 'finn', status: 'done', priority: 'high', category: 'recurring', createdAt: '2026-01-28' },
+    { id: '13', title: 'Email sweep - 9pm', owner: 'finn', status: 'pending', priority: 'high', category: 'recurring', createdAt: '2026-01-28' },
     
     // Projects
-    { id: '9', title: 'Sprout: Affiliate product display ✅', owner: 'finn', status: 'done', priority: 'high', category: 'project', createdAt: '2026-01-27' },
-    { id: '10', title: 'Sprout: Babylist-style UI ✅', owner: 'finn', status: 'done', priority: 'high', category: 'project', createdAt: '2026-01-27' },
-    { id: '11', title: 'Sprout: More age ranges from Nicolette', owner: 'gavin', status: 'pending', priority: 'medium', category: 'project', createdAt: '2026-01-28' },
-    { id: '12', title: 'Oyster Bay: Build demo site', owner: 'finn', status: 'pending', priority: 'medium', category: 'project', createdAt: '2026-01-27' },
-    { id: '13', title: 'BLD: Auto-email on new posts', owner: 'finn', status: 'pending', priority: 'medium', category: 'project', createdAt: '2026-01-27' },
+    { id: '14', title: 'Sprout: Affiliate product display ✅', owner: 'finn', status: 'done', priority: 'high', category: 'project', createdAt: '2026-01-27' },
+    { id: '15', title: 'Sprout: Babylist-style UI ✅', owner: 'finn', status: 'done', priority: 'high', category: 'project', createdAt: '2026-01-27' },
+    { id: '16', title: 'Slack: Full integration w/ Socket Mode ✅', owner: 'finn', status: 'done', priority: 'high', category: 'project', createdAt: '2026-01-28' },
+    { id: '17', title: 'CockroachDB: Full company research + prep doc ✅', owner: 'finn', status: 'done', priority: 'high', category: 'project', createdAt: '2026-01-28' },
+    { id: '18', title: 'Sprout: More age ranges from Nicolette', owner: 'gavin', status: 'pending', priority: 'medium', category: 'project', createdAt: '2026-01-28' },
+    { id: '19', title: 'Oyster Bay: Build demo site', owner: 'finn', status: 'pending', priority: 'medium', category: 'project', createdAt: '2026-01-27' },
+    { id: '20', title: 'BLD: Auto-email on new posts', owner: 'finn', status: 'pending', priority: 'medium', category: 'project', createdAt: '2026-01-27' },
+    { id: '21', title: 'CockroachDB: Deep prep before Fri interview', owner: 'finn', status: 'pending', priority: 'high', category: 'project', createdAt: '2026-01-28' },
     
     // Review Queue
-    { id: '14', title: 'Sprout deployment verification', owner: 'review', status: 'pending', priority: 'high', category: 'review', createdAt: '2026-01-28' },
+    { id: '22', title: 'Guidepoint: 2 pending invitations (AI Software + Comms Recording)', owner: 'review', status: 'pending', priority: 'high', category: 'review', createdAt: '2026-01-28' },
+    { id: '23', title: 'LinkedIn DM: Simone Viganò (Principled Intelligence)', owner: 'review', status: 'pending', priority: 'medium', category: 'review', createdAt: '2026-01-28' },
+    { id: '24', title: 'LinkedIn: Global Head CPG @ TCS lead', owner: 'review', status: 'pending', priority: 'medium', category: 'review', createdAt: '2026-01-28' },
   ]
 
   useEffect(() => {
@@ -382,7 +392,7 @@ export default function Dashboard() {
                 { name: 'Real Worth', type: 'Product', revenue: '$30/mo', status: 'App Store Pending' },
                 { name: 'Bucket List Doctor', type: 'Client', revenue: '$1,000/mo', status: 'Active' },
                 { name: 'Oyster Bay Sites', type: 'Pipeline', revenue: 'TBD', status: 'Demo Site Next' },
-                { name: 'Job Search', type: 'Priority', revenue: 'Bridge Income', status: 'Interviews Active' },
+                { name: 'Job Search', type: 'Priority', revenue: 'Bridge Income', status: 'CockroachDB Fri 1/31 @ 10am' },
               ].map((project, i) => (
                 <div key={i} className="p-3 bg-zinc-800/50 rounded-lg">
                   <div className="flex items-center justify-between mb-1">
@@ -409,17 +419,31 @@ export default function Dashboard() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="flex items-center gap-3 p-3 bg-zinc-800/30 rounded-lg">
+                <span className="text-2xl">💬</span>
+                <div>
+                  <p className="font-medium text-green-400">Slack Integration LIVE</p>
+                  <p className="text-xs text-zinc-400">Socket Mode • DMs • Channel monitoring • Jan 28</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-zinc-800/30 rounded-lg">
+                <span className="text-2xl">🪳</span>
+                <div>
+                  <p className="font-medium text-green-400">CockroachDB Interview Prepped</p>
+                  <p className="text-xs text-zinc-400">Full research + voice notes + company guide review • Jan 28</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-zinc-800/30 rounded-lg">
+                <span className="text-2xl">🐟</span>
+                <div>
+                  <p className="font-medium text-green-400">Finn Has a Face</p>
+                  <p className="text-xs text-zinc-400">Arcane-style avatar • Identity complete • Jan 28</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-zinc-800/30 rounded-lg">
                 <span className="text-2xl">🚀</span>
                 <div>
                   <p className="font-medium text-green-400">Sprout Affiliate Links LIVE</p>
                   <p className="text-xs text-zinc-400">11 products • Babylist-style UI • Jan 27</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 bg-zinc-800/30 rounded-lg">
-                <span className="text-2xl">💰</span>
-                <div>
-                  <p className="font-medium text-green-400">$17K One-Time Revenue</p>
-                  <p className="text-xs text-zinc-400">BLD + Sprout + Strive + Spirited</p>
                 </div>
               </div>
             </div>
@@ -521,8 +545,8 @@ export default function Dashboard() {
 
       {/* Footer */}
       <footer className="text-center text-zinc-600 text-xs mt-8">
-        <p>Command Center v0.3 | Updated live by Finn 🐟</p>
-        <p className="mt-1">Last update: Jan 27 @ 11:30pm - Sprout affiliate links deployed!</p>
+        <p>Command Center v0.4 | Updated live by Finn 🐟</p>
+        <p className="mt-1">Last update: Jan 28 @ 2:45pm - Slack live, CockroachDB prepped, Finn has a face!</p>
       </footer>
     </main>
   )
