@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Mobile-first responsive */
+.card {
+  @apply bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-6;
+}
+
+.stat-value {
+  @apply text-2xl sm:text-3xl font-bold;
+}
+
+.stat-label {
+  @apply text-xs sm:text-sm text-zinc-400 uppercase tracking-wide;
+}
+
+/* Progress bar animation */
+@keyframes progress {
+  from { width: 0; }
+}
+
+.progress-bar {
+  animation: progress 1s ease-out;
+}
