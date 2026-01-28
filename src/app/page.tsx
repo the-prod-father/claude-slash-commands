@@ -55,7 +55,28 @@ interface ReviewItem {
 
 // ─── Static Data (not API-driven yet) ───────────────────────
 const WEATHER = { temp: 34, high: 38, low: 28, condition: 'Partly Cloudy', icon: '⛅' }
-const KNICKS = { record: '32-17', standing: '3rd in East', streak: 'W4', nextGame: 'Wed 1/29 @ 7:30pm', nextOpponent: 'Miami Heat' }
+// Knicks data fetched live from /api/nba
+interface NBAData {
+  record: string
+  standing: string
+  streak: string
+  todayGame: {
+    status: 'scheduled' | 'live' | 'final'
+    opponent: string
+    opponentTricode: string
+    home: boolean
+    time?: string
+    knicksScore?: number
+    opponentScore?: number
+    period?: number
+    clock?: string
+    gameStatusText?: string
+    won?: boolean
+  } | null
+  nextGame: { text: string } | null
+  isLive: boolean
+  error?: boolean
+}
 
 const DAILY_RHYTHM = [
   {
@@ -300,6 +321,10 @@ export default function Dashboard() {
   const [timeStr, setTimeStr] = useState('')
   const [daysUntilEvie, setDaysUntilEvie] = useState(0)
 
+  // NBA live data
+  const [nba, setNba] = useState<NBAData | null>(null)
+  const [nbaLoading, setNbaLoading] = useState(true)
+
   // Live data
   const [tasks, setTasks] = useState<Task[]>([])
   const [drafts, setDrafts] = useState<Draft[]>([])
@@ -329,6 +354,25 @@ export default function Dashboard() {
     const i = setInterval(fetchAll, 30000)
     return () => clearInterval(i)
   }, [fetchAll])
+
+  // NBA data fetch with auto-refresh during live games
+  useEffect(() => {
+    const fetchNBA = async () => {
+      try {
+        const res = await fetch('/api/nba')
+        const data = await res.json()
+        setNba(data)
+      } catch {
+        setNba({ record: '', standing: '', streak: '', todayGame: null, nextGame: null, isLive: false, error: true })
+      } finally {
+        setNbaLoading(false)
+      }
+    }
+    fetchNBA()
+    // Refresh every 30s during live games, otherwise every 5 min
+    const interval = setInterval(fetchNBA, nba?.isLive ? 30000 : 300000)
+    return () => clearInterval(interval)
+  }, [nba?.isLive])
 
   useEffect(() => {
     const update = () => {
@@ -431,26 +475,102 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Knicks */}
+        {/* Knicks - Live Data */}
         <div className="fade-up fade-up-3 glass p-5 bg-gradient-to-br from-orange-950/20 to-blue-950/20">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2.5">
               <span className="text-2xl">🏀</span>
               <div>
                 <p className="text-xs font-bold tracking-[0.2em] text-orange-400">NEW YORK KNICKS</p>
-                <p className="text-[10px] text-zinc-500">{KNICKS.standing}</p>
+                <p className="text-[10px] text-zinc-500">
+                  {nbaLoading ? '...' : nba?.standing || ''}
+                </p>
               </div>
+              {nba?.isLive && (
+                <span className="flex items-center gap-1.5 ml-2 text-[10px] font-bold text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/20">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+                  LIVE
+                </span>
+              )}
             </div>
             <div className="text-right">
-              <p className="text-3xl font-extralight tracking-tight text-white font-mono">{KNICKS.record}</p>
-              <p className="text-xs text-emerald-400 font-medium">🔥 {KNICKS.streak}</p>
+              {nbaLoading ? (
+                <div className="h-8 w-16 bg-white/[0.05] rounded animate-pulse" />
+              ) : (
+                <>
+                  <p className="text-3xl font-extralight tracking-tight text-white font-mono">{nba?.record || '—'}</p>
+                  {nba?.streak && <p className="text-xs text-emerald-400 font-medium">🔥 {nba.streak}</p>}
+                </>
+              )}
             </div>
           </div>
-          <div className="flex items-center justify-between text-xs bg-white/[0.03] rounded-lg px-3 py-2 border border-white/[0.04]">
-            <span className="text-zinc-500">Next</span>
-            <span className="text-white/80">vs {KNICKS.nextOpponent}</span>
-            <span className="text-zinc-500">{KNICKS.nextGame}</span>
-          </div>
+
+          {nbaLoading ? (
+            <div className="h-10 bg-white/[0.03] rounded-lg animate-pulse" />
+          ) : nba?.todayGame ? (
+            nba.todayGame.status === 'live' ? (
+              /* LIVE GAME */
+              <div className="bg-white/[0.03] rounded-lg px-4 py-3 border border-red-500/10">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] uppercase tracking-widest text-red-400/80">
+                    {nba.todayGame.gameStatusText || `Q${nba.todayGame.period}`}
+                  </span>
+                  {nba.todayGame.clock && (
+                    <span className="text-[10px] text-zinc-500 font-mono">{nba.todayGame.clock}</span>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="text-center flex-1">
+                    <p className="text-xs font-bold text-orange-400">NYK</p>
+                    <p className="text-2xl font-bold text-white">{nba.todayGame.knicksScore}</p>
+                  </div>
+                  <span className="text-zinc-600 text-xs px-3">vs</span>
+                  <div className="text-center flex-1">
+                    <p className="text-xs font-bold text-zinc-400">{nba.todayGame.opponentTricode}</p>
+                    <p className="text-2xl font-bold text-white/70">{nba.todayGame.opponentScore}</p>
+                  </div>
+                </div>
+              </div>
+            ) : nba.todayGame.status === 'final' ? (
+              /* FINAL SCORE */
+              <div className="bg-white/[0.03] rounded-lg px-4 py-3 border border-white/[0.04]">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] uppercase tracking-widest text-zinc-500">Final</span>
+                  <span className={`text-[10px] font-bold ${nba.todayGame.won ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {nba.todayGame.won ? '✓ WIN' : '✗ LOSS'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="text-center flex-1">
+                    <p className="text-xs font-bold text-orange-400">NYK</p>
+                    <p className="text-2xl font-bold text-white">{nba.todayGame.knicksScore}</p>
+                  </div>
+                  <span className="text-zinc-600 text-xs px-3">vs</span>
+                  <div className="text-center flex-1">
+                    <p className="text-xs font-bold text-zinc-400">{nba.todayGame.opponentTricode}</p>
+                    <p className="text-2xl font-bold text-white/70">{nba.todayGame.opponentScore}</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* SCHEDULED */
+              <div className="flex items-center justify-between text-xs bg-white/[0.03] rounded-lg px-3 py-2 border border-white/[0.04]">
+                <span className="text-zinc-500">Today</span>
+                <span className="text-white/80">
+                  {nba.todayGame.home ? 'vs' : '@'} {nba.todayGame.opponentTricode}
+                </span>
+                <span className="text-zinc-500">{nba.todayGame.time || nba.todayGame.gameStatusText}</span>
+              </div>
+            )
+          ) : nba?.nextGame ? (
+            <div className="flex items-center justify-center text-xs bg-white/[0.03] rounded-lg px-3 py-2 border border-white/[0.04]">
+              <span className="text-zinc-500">{nba.nextGame.text}</span>
+            </div>
+          ) : nba?.error ? (
+            <div className="flex items-center justify-center text-xs bg-white/[0.03] rounded-lg px-3 py-2 border border-white/[0.04]">
+              <span className="text-zinc-500">Stats loading...</span>
+            </div>
+          ) : null}
         </div>
       </section>
 
