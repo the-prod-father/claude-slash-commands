@@ -1,552 +1,486 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { 
-  Target, TrendingUp, CheckCircle2, Clock, 
-  DollarSign, Calendar, Zap, ChevronRight,
-  Fish, User, LayoutDashboard, Columns,
-  Sun, Cloud, CloudRain, Snowflake, Wind,
-  Trophy, TrendingUp as Flame
-} from 'lucide-react'
+import Link from 'next/link'
 
-// Types
+// ─── Data Types ──────────────────────────────────────────────
 interface Task {
   id: string
   title: string
-  owner: 'finn' | 'gavin' | 'review'
-  status: 'pending' | 'done' | 'blocked'
+  owner: 'finn' | 'gavin'
+  status: 'done' | 'in-progress' | 'pending'
   priority: 'high' | 'medium' | 'low'
-  category: 'today' | 'recurring' | 'project' | 'review'
-  createdAt: string
+  category: string
 }
 
-interface Revenue {
-  stripeMrr: number
-  clientMrr: number
-  totalMrr: number
+interface Project {
+  name: string
+  type: string
+  revenue: string
+  status: string
+  nextAction: string
+  color: string
 }
 
-interface Goals {
-  mustHave: number
-  stretch: number
-  moonshot: number
+interface ActivityItem {
+  time: string
+  text: string
+  icon: string
 }
 
-interface Weather {
-  temp: number
-  high: number
-  low: number
-  condition: string
-  icon: 'sun' | 'cloud' | 'rain' | 'snow' | 'wind'
+interface ReviewItem {
+  id: string
+  title: string
+  priority: 'high' | 'medium'
+  type: string
 }
 
-interface KnicksData {
-  record: string
-  wins: number
-  losses: number
-  standing: string
-  streak: string
-  nextGame: string
-  nextOpponent: string
+// ─── Hardcoded Data (structured for future API) ─────────────
+const WEATHER = { temp: 34, high: 38, low: 28, condition: 'Partly Cloudy', icon: '⛅' }
+const KNICKS = { record: '32-17', standing: '3rd in East', streak: 'W4', nextGame: 'Wed 1/29 @ 7:30pm', nextOpponent: 'Miami Heat' }
+
+const FINN_TASKS: Task[] = [
+  { id: 'f1', title: 'Slack integration — Socket Mode live', owner: 'finn', status: 'done', priority: 'high', category: 'Integration' },
+  { id: 'f2', title: 'CockroachDB interview prep + voice notes', owner: 'finn', status: 'done', priority: 'high', category: 'Job Search' },
+  { id: 'f3', title: 'Finn avatar generated (Arcane-style)', owner: 'finn', status: 'done', priority: 'medium', category: 'Identity' },
+  { id: 'f4', title: '#wnu-dev channel summary delivered', owner: 'finn', status: 'done', priority: 'medium', category: 'Comms' },
+  { id: 'f5', title: 'Email sweeps (7am + 1pm)', owner: 'finn', status: 'done', priority: 'high', category: 'Recurring' },
+  { id: 'f6', title: 'iMessage integration setup', owner: 'finn', status: 'in-progress', priority: 'medium', category: 'Integration' },
+  { id: 'f7', title: 'Deep CockroachDB prep for Fri interview', owner: 'finn', status: 'pending', priority: 'high', category: 'Job Search' },
+  { id: 'f8', title: 'Oyster Bay demo site build', owner: 'finn', status: 'pending', priority: 'medium', category: 'Project' },
+  { id: 'f9', title: 'BLD auto-email on new posts', owner: 'finn', status: 'pending', priority: 'medium', category: 'Project' },
+]
+
+const GAVIN_TASKS: Task[] = [
+  { id: 'g1', title: 'Gemini API key fixed (removed restrictions)', owner: 'gavin', status: 'done', priority: 'medium', category: 'Dev' },
+  { id: 'g2', title: 'CockroachDB interview → Fri 1/31 @ 10am', owner: 'gavin', status: 'done', priority: 'high', category: 'Job Search' },
+  { id: 'g3', title: 'Check Real Worth App Store status', owner: 'gavin', status: 'pending', priority: 'high', category: 'Product' },
+  { id: 'g4', title: 'LinkedIn DMs — respond to all', owner: 'gavin', status: 'pending', priority: 'medium', category: 'Comms' },
+  { id: 'g5', title: 'Sprout age ranges from Nicolette', owner: 'gavin', status: 'pending', priority: 'medium', category: 'Product' },
+]
+
+const REVIEW_QUEUE: ReviewItem[] = [
+  { id: 'r1', title: 'Guidepoint: AI Software invitation', priority: 'high', type: 'Decision' },
+  { id: 'r2', title: 'Guidepoint: Comms Recording invitation', priority: 'high', type: 'Decision' },
+  { id: 'r3', title: 'LinkedIn DM: Simone Viganò (Principled Intelligence)', priority: 'medium', type: 'Lead' },
+  { id: 'r4', title: 'LinkedIn: Global Head CPG @ TCS', priority: 'medium', type: 'Lead' },
+]
+
+const ACTIVITY_FEED: ActivityItem[] = [
+  { time: '2:45 PM', text: 'Command Center redesigned — Jony Ive edition deployed', icon: '🚀' },
+  { time: '1:15 PM', text: 'Inbox reviewed — 3 drafts ready for review', icon: '📧' },
+  { time: '1:00 PM', text: 'Email sweep complete — 12 processed, 0 urgent', icon: '✉️' },
+  { time: '12:30 PM', text: '#wnu-dev summary delivered to Slack', icon: '💬' },
+  { time: '11:00 AM', text: 'CockroachDB research doc finalized — 4,200 words', icon: '📋' },
+  { time: '10:15 AM', text: 'Calendar checked — no conflicts today', icon: '📅' },
+  { time: '9:30 AM', text: 'LinkedIn DMs scanned — 2 need your response', icon: '🔗' },
+  { time: '7:00 AM', text: 'Morning email sweep — inbox clear', icon: '🌅' },
+]
+
+const DAILY_RHYTHM = [
+  {
+    period: 'Morning',
+    icon: '🌅',
+    time: '7:00 – 11:00 AM',
+    finnDid: ['Email sweep — inbox cleared', 'CockroachDB research doc completed', 'LinkedIn DMs scanned'],
+    gavinsAttention: ['2 LinkedIn DMs need response'],
+    comingUp: [],
+  },
+  {
+    period: 'Midday',
+    icon: '☀️',
+    time: '11:00 AM – 4:00 PM',
+    finnDid: ['#wnu-dev summary posted', '1pm email sweep done', 'Command Center redesigned'],
+    gavinsAttention: ['Review Guidepoint invitations', 'Check Real Worth App Store'],
+    comingUp: ['Knicks vs Heat @ 7:30pm'],
+  },
+  {
+    period: 'Evening',
+    icon: '🌙',
+    time: '4:00 – 10:00 PM',
+    finnDid: [],
+    gavinsAttention: [],
+    comingUp: ['9pm email sweep', 'Prep CockroachDB deep-dive for tomorrow'],
+  },
+]
+
+const PROJECTS: Project[] = [
+  { name: 'Sprout Gifts', type: 'Product', revenue: '$4K project', status: 'Affiliate links LIVE', nextAction: 'Age ranges from Nicolette', color: 'text-pink-400' },
+  { name: 'Real Worth', type: 'Product', revenue: '$30/mo MRR', status: 'App Store Pending', nextAction: 'Check review status', color: 'text-purple-400' },
+  { name: 'Bucket List Doctor', type: 'Client', revenue: '$1,000/mo', status: 'Active', nextAction: 'Auto-email on new posts', color: 'text-cyan-400' },
+  { name: 'Oyster Bay Sites', type: 'Pipeline', revenue: 'TBD', status: 'Pre-demo', nextAction: 'Build demo site', color: 'text-green-400' },
+  { name: 'Job Search', type: 'Priority', revenue: 'Bridge income', status: 'Active', nextAction: 'CockroachDB Fri 1/31 @ 10am', color: 'text-orange-400' },
+]
+
+const RECENT_WINS = [
+  { icon: '💬', title: 'Slack Integration LIVE', desc: 'Socket Mode • DMs • Channel monitoring', date: 'Jan 28' },
+  { icon: '🪳', title: 'CockroachDB Interview Prepped', desc: 'Full research + voice notes + guide', date: 'Jan 28' },
+  { icon: '🐟', title: 'Finn Has a Face', desc: 'Arcane-style avatar • Identity complete', date: 'Jan 28' },
+  { icon: '🚀', title: 'Sprout Affiliate Links LIVE', desc: '11 products • Babylist-style UI', date: 'Jan 27' },
+]
+
+// ─── Components ──────────────────────────────────────────────
+
+function StatusBadge({ status }: { status: string }) {
+  const styles: Record<string, string> = {
+    'done': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    'in-progress': 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
+    'pending': 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20',
+  }
+  const labels: Record<string, string> = {
+    'done': '✓ Done',
+    'in-progress': '◉ Active',
+    'pending': '○ Pending',
+  }
+  return (
+    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${styles[status] || styles.pending}`}>
+      {labels[status] || status}
+    </span>
+  )
 }
 
+function PriorityDot({ priority }: { priority: string }) {
+  const color = priority === 'high' ? 'bg-red-400' : priority === 'medium' ? 'bg-amber-400' : 'bg-zinc-500'
+  return <span className={`w-1.5 h-1.5 rounded-full ${color} flex-shrink-0`} />
+}
+
+function SectionHeader({ children, icon, badge }: { children: React.ReactNode; icon: string; badge?: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2.5 mb-4">
+      <span className="text-lg">{icon}</span>
+      <h2 className="text-[15px] font-semibold tracking-tight text-white/90">{children}</h2>
+      {badge && <div className="ml-auto">{badge}</div>}
+    </div>
+  )
+}
+
+function TaskRow({ task }: { task: Task }) {
+  const isDone = task.status === 'done'
+  return (
+    <div className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-white/[0.02] transition-colors group">
+      <PriorityDot priority={task.priority} />
+      <span className={`text-sm flex-1 ${isDone ? 'line-through text-zinc-500' : 'text-zinc-200'}`}>
+        {task.title}
+      </span>
+      <span className="text-[10px] text-zinc-600 hidden sm:block">{task.category}</span>
+      <StatusBadge status={task.status} />
+    </div>
+  )
+}
+
+// ─── Main Page ───────────────────────────────────────────────
 export default function Dashboard() {
-  const [date, setDate] = useState('')
-  const [time, setTime] = useState('')
+  const [dateStr, setDateStr] = useState('')
+  const [timeStr, setTimeStr] = useState('')
   const [daysUntilEvie, setDaysUntilEvie] = useState(0)
-  const [view, setView] = useState<'dashboard' | 'kanban'>('dashboard')
-  const [weather, setWeather] = useState<Weather | null>(null)
-  const [knicks, setKnicks] = useState<KnicksData | null>(null)
-  
-  // Current data (will be API-driven later)
-  const revenue: Revenue = {
-    stripeMrr: 30, // Real Worth subs
-    clientMrr: 1000, // BLD retainer
-    totalMrr: 1030,
-  }
-  
-  // One-time revenue received
-  const oneTimeRevenue = 17000 // BLD $4K + Sprout $4K + Strive $8K + Spirited $1K
-  
-  const goals: Goals = {
-    mustHave: 500000,
-    stretch: 1000000,
-    moonshot: 5000000,
-  }
-  
-  const tasks: Task[] = [
-    // Today - Tuesday Jan 28
-    { id: '1', title: 'Slack integration — LIVE ✅', owner: 'finn', status: 'done', priority: 'high', category: 'today', createdAt: '2026-01-28' },
-    { id: '2', title: 'CockroachDB interview prep + voice notes ✅', owner: 'finn', status: 'done', priority: 'high', category: 'today', createdAt: '2026-01-28' },
-    { id: '3', title: 'Finn avatar generated (Arcane-style) ✅', owner: 'finn', status: 'done', priority: 'medium', category: 'today', createdAt: '2026-01-28' },
-    { id: '4', title: 'Gemini API key fixed (removed restrictions) ✅', owner: 'gavin', status: 'done', priority: 'medium', category: 'today', createdAt: '2026-01-28' },
-    { id: '5', title: '#wnu-dev channel summary delivered ✅', owner: 'finn', status: 'done', priority: 'medium', category: 'today', createdAt: '2026-01-28' },
-    { id: '6', title: 'CockroachDB interview moved to Fri 1/31 @ 10am', owner: 'gavin', status: 'done', priority: 'high', category: 'today', createdAt: '2026-01-28' },
-    { id: '7', title: 'iMessage integration setup', owner: 'finn', status: 'pending', priority: 'medium', category: 'today', createdAt: '2026-01-28' },
-    { id: '8', title: 'Check Real Worth App Store status', owner: 'gavin', status: 'pending', priority: 'high', category: 'today', createdAt: '2026-01-28' },
-    { id: '9', title: 'LinkedIn DMs - respond to all', owner: 'gavin', status: 'pending', priority: 'medium', category: 'today', createdAt: '2026-01-28' },
-    
-    // Recurring (Finn's cron jobs)
-    { id: '10', title: 'Email sweep - 7am ✅', owner: 'finn', status: 'done', priority: 'high', category: 'recurring', createdAt: '2026-01-28' },
-    { id: '11', title: 'Morning kickoff - 7:30am', owner: 'finn', status: 'pending', priority: 'high', category: 'recurring', createdAt: '2026-01-28' },
-    { id: '12', title: 'Email sweep - 1pm ✅', owner: 'finn', status: 'done', priority: 'high', category: 'recurring', createdAt: '2026-01-28' },
-    { id: '13', title: 'Email sweep - 9pm', owner: 'finn', status: 'pending', priority: 'high', category: 'recurring', createdAt: '2026-01-28' },
-    
-    // Projects
-    { id: '14', title: 'Sprout: Affiliate product display ✅', owner: 'finn', status: 'done', priority: 'high', category: 'project', createdAt: '2026-01-27' },
-    { id: '15', title: 'Sprout: Babylist-style UI ✅', owner: 'finn', status: 'done', priority: 'high', category: 'project', createdAt: '2026-01-27' },
-    { id: '16', title: 'Slack: Full integration w/ Socket Mode ✅', owner: 'finn', status: 'done', priority: 'high', category: 'project', createdAt: '2026-01-28' },
-    { id: '17', title: 'CockroachDB: Full company research + prep doc ✅', owner: 'finn', status: 'done', priority: 'high', category: 'project', createdAt: '2026-01-28' },
-    { id: '18', title: 'Sprout: More age ranges from Nicolette', owner: 'gavin', status: 'pending', priority: 'medium', category: 'project', createdAt: '2026-01-28' },
-    { id: '19', title: 'Oyster Bay: Build demo site', owner: 'finn', status: 'pending', priority: 'medium', category: 'project', createdAt: '2026-01-27' },
-    { id: '20', title: 'BLD: Auto-email on new posts', owner: 'finn', status: 'pending', priority: 'medium', category: 'project', createdAt: '2026-01-27' },
-    { id: '21', title: 'CockroachDB: Deep prep before Fri interview', owner: 'finn', status: 'pending', priority: 'high', category: 'project', createdAt: '2026-01-28' },
-    
-    // Review Queue
-    { id: '22', title: 'Guidepoint: 2 pending invitations (AI Software + Comms Recording)', owner: 'review', status: 'pending', priority: 'high', category: 'review', createdAt: '2026-01-28' },
-    { id: '23', title: 'LinkedIn DM: Simone Viganò (Principled Intelligence)', owner: 'review', status: 'pending', priority: 'medium', category: 'review', createdAt: '2026-01-28' },
-    { id: '24', title: 'LinkedIn: Global Head CPG @ TCS lead', owner: 'review', status: 'pending', priority: 'medium', category: 'review', createdAt: '2026-01-28' },
-  ]
 
   useEffect(() => {
-    const updateTime = () => {
+    const update = () => {
       const now = new Date()
-      setDate(now.toLocaleDateString('en-US', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      }))
-      setTime(now.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      }))
-      
-      // Calculate days until Evie (June 30, 2026)
-      const evieDate = new Date('2026-06-30')
-      const diffTime = evieDate.getTime() - now.getTime()
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-      setDaysUntilEvie(diffDays)
+      setDateStr(now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }))
+      setTimeStr(now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }))
+      const evie = new Date('2026-06-30')
+      setDaysUntilEvie(Math.ceil((evie.getTime() - now.getTime()) / 86400000))
     }
-    
-    updateTime()
-    const interval = setInterval(updateTime, 60000)
-    
-    // Mock weather for Oyster Bay Cove, NY (will be API later)
-    setWeather({
-      temp: 34,
-      high: 38,
-      low: 28,
-      condition: 'Partly Cloudy',
-      icon: 'cloud'
-    })
-    
-    // Mock Knicks data (will be API later)
-    setKnicks({
-      record: '32-17',
-      wins: 32,
-      losses: 17,
-      standing: '3rd in East',
-      streak: 'W4',
-      nextGame: 'Wed 1/29 @ 7:30pm',
-      nextOpponent: 'vs Miami Heat'
-    })
-    
-    return () => clearInterval(interval)
+    update()
+    const i = setInterval(update, 30000)
+    return () => clearInterval(i)
   }, [])
 
-  const mrrProgress = (revenue.totalMrr * 12 / goals.mustHave) * 100
-  
-  const getTasksByCategory = (category: string) => tasks.filter(t => t.category === category)
-  const getTasksByOwner = (owner: string) => tasks.filter(t => t.owner === owner)
-  
-  const WeatherIcon = ({ icon }: { icon: string }) => {
-    switch (icon) {
-      case 'sun': return <Sun className="w-8 h-8 text-yellow-400" />
-      case 'cloud': return <Cloud className="w-8 h-8 text-zinc-400" />
-      case 'rain': return <CloudRain className="w-8 h-8 text-blue-400" />
-      case 'snow': return <Snowflake className="w-8 h-8 text-cyan-300" />
-      default: return <Wind className="w-8 h-8 text-zinc-400" />
-    }
-  }
-  
+  const finnDone = FINN_TASKS.filter(t => t.status === 'done').length
+  const gavinDone = GAVIN_TASKS.filter(t => t.status === 'done').length
+  const mrr = 1030
+  const arr = mrr * 12
+  const oneTime = 17000
+
   return (
-    <main className="min-h-screen p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-      {/* Header */}
-      <header className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
-            <span className="text-cyan-400">🐟</span> Command Center
-          </h1>
-          <div className="flex items-center gap-4">
-            {/* View Toggle */}
-            <div className="flex bg-zinc-800 rounded-lg p-1">
-              <button 
-                onClick={() => setView('dashboard')}
-                className={`px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 transition ${view === 'dashboard' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'}`}
-              >
-                <LayoutDashboard className="w-4 h-4" />
-                Dashboard
-              </button>
-              <button 
-                onClick={() => setView('kanban')}
-                className={`px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 transition ${view === 'kanban' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'}`}
-              >
-                <Columns className="w-4 h-4" />
-                Kanban
-              </button>
-            </div>
-            <div className="text-right hidden sm:block">
-              <p className="text-sm text-zinc-400">{date}</p>
-              <p className="text-lg font-mono text-white">{time}</p>
-              <p className="text-xs text-purple-400 font-medium">{daysUntilEvie} days until Evie 💜</p>
-            </div>
+    <main className="min-h-screen max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+
+      {/* ═══ TOP BAR ═══ */}
+      <header className="fade-up fade-up-1 mb-8">
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2.5">
+              <span className="text-cyan-400">🐟</span>
+              <span className="bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">
+                Command Center
+              </span>
+            </h1>
+            <p className="text-zinc-500 text-sm mt-1">{dateStr}</p>
+          </div>
+          <div className="text-right flex flex-col items-end gap-1">
+            <p className="text-xl font-light tracking-wide text-white/80 font-mono">{timeStr}</p>
+            <p className="text-xs text-purple-400 font-medium">{daysUntilEvie} days until Evie 💜</p>
+            <Link href="/access" className="text-[11px] text-zinc-500 hover:text-cyan-400 transition-colors mt-1">
+              Access Inventory →
+            </Link>
           </div>
         </div>
-        <p className="text-zinc-400 text-sm">Gavin + Finn | Building history together</p>
       </header>
 
-      {/* Fun Widgets Row */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        {/* Weather Widget */}
-        {weather && (
-          <div className="card bg-gradient-to-br from-blue-900/30 to-zinc-900">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-zinc-400 uppercase tracking-wide">Oyster Bay Cove, NY</p>
-                <div className="flex items-baseline gap-2 mt-1">
-                  <span className="text-4xl font-bold">{weather.temp}°</span>
-                  <span className="text-zinc-400 text-sm">F</span>
-                </div>
-                <p className="text-sm text-zinc-300 mt-1">{weather.condition}</p>
-                <p className="text-xs text-zinc-500 mt-1">H: {weather.high}° L: {weather.low}°</p>
+      {/* ═══ WIDGETS ROW ═══ */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+        {/* Weather */}
+        <div className="fade-up fade-up-2 glass p-5 bg-gradient-to-br from-blue-950/30 to-transparent">
+          <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 mb-3">Oyster Bay Cove, NY</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-5xl font-extralight tracking-tighter text-white">{WEATHER.temp}°</span>
               </div>
-              <WeatherIcon icon={weather.icon} />
+              <p className="text-sm text-zinc-400 mt-1">{WEATHER.condition}</p>
+              <p className="text-xs text-zinc-600 mt-0.5">H:{WEATHER.high}° L:{WEATHER.low}°</p>
             </div>
+            <span className="text-5xl opacity-80">{WEATHER.icon}</span>
           </div>
-        )}
-        
-        {/* Knicks Widget */}
-        {knicks && (
-          <div className="card bg-gradient-to-br from-orange-900/30 to-blue-900/30">
-            <div className="flex items-center gap-3 mb-3">
+        </div>
+
+        {/* Knicks */}
+        <div className="fade-up fade-up-3 glass p-5 bg-gradient-to-br from-orange-950/20 to-blue-950/20">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2.5">
               <span className="text-2xl">🏀</span>
               <div>
-                <p className="font-bold text-orange-400">NEW YORK KNICKS</p>
-                <p className="text-xs text-zinc-400">{knicks.standing}</p>
-              </div>
-              <div className="ml-auto text-right">
-                <p className="text-2xl font-bold font-mono">{knicks.record}</p>
-                <p className={`text-xs font-medium ${knicks.streak.startsWith('W') ? 'text-green-400' : 'text-red-400'}`}>
-                  {knicks.streak.startsWith('W') ? '🔥' : ''} {knicks.streak}
-                </p>
+                <p className="text-xs font-bold tracking-[0.2em] text-orange-400">NEW YORK KNICKS</p>
+                <p className="text-[10px] text-zinc-500">{KNICKS.standing}</p>
               </div>
             </div>
-            <div className="flex items-center justify-between text-sm bg-zinc-800/50 rounded-lg p-2">
-              <span className="text-zinc-400">Next Game:</span>
-              <span className="text-white font-medium">{knicks.nextOpponent}</span>
-              <span className="text-zinc-400">{knicks.nextGame}</span>
+            <div className="text-right">
+              <p className="text-3xl font-extralight tracking-tight text-white font-mono">{KNICKS.record}</p>
+              <p className="text-xs text-emerald-400 font-medium">🔥 {KNICKS.streak}</p>
             </div>
           </div>
-        )}
+          <div className="flex items-center justify-between text-xs bg-white/[0.03] rounded-lg px-3 py-2 border border-white/[0.04]">
+            <span className="text-zinc-500">Next</span>
+            <span className="text-white/80">vs {KNICKS.nextOpponent}</span>
+            <span className="text-zinc-500">{KNICKS.nextGame}</span>
+          </div>
+        </div>
       </section>
 
-      {view === 'dashboard' ? (
-        <>
-          {/* Revenue Section */}
-          <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="card col-span-1 md:col-span-2">
-              <div className="flex items-center gap-2 mb-4">
-                <DollarSign className="w-5 h-5 text-green-400" />
-                <h2 className="font-semibold">Revenue</h2>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div>
-                  <p className="stat-value text-green-400">${revenue.totalMrr.toLocaleString()}</p>
-                  <p className="stat-label">Total MRR</p>
-                </div>
-                <div>
-                  <p className="stat-value text-cyan-400">${revenue.stripeMrr}</p>
-                  <p className="stat-label">Stripe</p>
-                </div>
-                <div>
-                  <p className="stat-value text-purple-400">${revenue.clientMrr.toLocaleString()}</p>
-                  <p className="stat-label">Clients</p>
-                </div>
-              </div>
-              
-              <div className="space-y-3">
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-zinc-400">Progress to $500K ARR</span>
-                    <span className="text-green-400">{mrrProgress.toFixed(1)}%</span>
-                  </div>
-                  <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-green-500 to-emerald-400 progress-bar"
-                      style={{ width: `${Math.min(mrrProgress, 100)}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="card">
-              <div className="flex items-center gap-2 mb-4">
-                <Target className="w-5 h-5 text-purple-400" />
-                <h2 className="font-semibold">2026 Goals</h2>
-              </div>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-zinc-400">Must Have</span>
-                  <span className="font-mono text-green-400">$500K</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-zinc-400">Stretch</span>
-                  <span className="font-mono text-yellow-400">$1M</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-zinc-400">Moonshot</span>
-                  <span className="font-mono text-purple-400">$5M</span>
-                </div>
-                <hr className="border-zinc-800" />
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-zinc-400">Current ARR</span>
-                  <span className="font-mono text-white">${(revenue.totalMrr * 12).toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
-          </section>
+      {/* ═══ INBOX STATUS ═══ */}
+      <div className="fade-up fade-up-3 glass px-5 py-3 mb-8 flex items-center gap-4 text-xs">
+        <span className="w-2 h-2 rounded-full bg-emerald-400 pulse-dot" />
+        <span className="text-zinc-400">Inbox</span>
+        <span className="text-zinc-300">Last reviewed: 45 min ago</span>
+        <span className="text-zinc-600">•</span>
+        <span className="text-zinc-300">3 drafts pending</span>
+        <span className="text-zinc-600">•</span>
+        <span className="text-zinc-300">0 urgent</span>
+      </div>
 
-          {/* Tasks Section */}
-          <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-            <div className="card">
-              <div className="flex items-center gap-2 mb-4">
-                <Fish className="w-5 h-5 text-cyan-400" />
-                <h2 className="font-semibold">Finn's Tasks</h2>
-                <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded ml-auto">
-                  {getTasksByOwner('finn').filter(t => t.status === 'done').length}/{getTasksByOwner('finn').length} done
-                </span>
-              </div>
-              <div className="space-y-2">
-                {getTasksByOwner('finn').map(task => (
-                  <div key={task.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-800/50">
-                    <CheckCircle2 className={`w-4 h-4 ${task.status === 'done' ? 'text-green-400' : 'text-zinc-600'}`} />
-                    <span className={task.status === 'done' ? 'line-through text-zinc-500' : ''}>{task.title}</span>
-                  </div>
-                ))}
-              </div>
+      {/* ═══ FINN ACTIVITY FEED ═══ */}
+      <section className="fade-up fade-up-4 glass p-5 sm:p-6 mb-8 glow-cyan">
+        <SectionHeader icon="🐟" badge={
+          <span className="text-[10px] text-cyan-400/80 bg-cyan-500/10 border border-cyan-500/15 px-2.5 py-1 rounded-full font-medium">
+            LIVE
+          </span>
+        }>
+          Finn Activity Feed
+        </SectionHeader>
+        <div className="space-y-1">
+          {ACTIVITY_FEED.map((item, i) => (
+            <div key={i} className={`slide-in flex items-start gap-3 py-2 px-3 rounded-lg hover:bg-white/[0.02] transition-colors`} style={{ animationDelay: `${0.3 + i * 0.06}s` }}>
+              <span className="text-sm mt-0.5">{item.icon}</span>
+              <span className="text-sm text-zinc-300 flex-1">{item.text}</span>
+              <span className="text-[10px] text-zinc-600 font-mono whitespace-nowrap">{item.time}</span>
             </div>
-            
-            <div className="card">
-              <div className="flex items-center gap-2 mb-4">
-                <User className="w-5 h-5 text-purple-400" />
-                <h2 className="font-semibold">Gavin's Tasks</h2>
-                <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded ml-auto">
-                  {getTasksByOwner('gavin').filter(t => t.status === 'done').length}/{getTasksByOwner('gavin').length} done
-                </span>
-              </div>
-              <div className="space-y-2">
-                {getTasksByOwner('gavin').map(task => (
-                  <div key={task.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-800/50">
-                    <CheckCircle2 className={`w-4 h-4 ${task.status === 'done' ? 'text-green-400' : 'text-zinc-600'}`} />
-                    <span className={task.status === 'done' ? 'line-through text-zinc-500' : ''}>{task.title}</span>
-                    {task.priority === 'high' && <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded">HIGH</span>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
+          ))}
+        </div>
+      </section>
 
-          {/* Review Queue */}
-          <section className="card mb-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Clock className="w-5 h-5 text-yellow-400" />
-              <h2 className="font-semibold">Review Queue</h2>
-              <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded ml-auto">
-                {getTasksByOwner('review').filter(t => t.status === 'pending').length} pending
-              </span>
-            </div>
-            <div className="space-y-2">
-              {getTasksByOwner('review').map(task => (
-                <div key={task.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-800/50">
-                  <Clock className="w-4 h-4 text-yellow-400" />
-                  <span>{task.title}</span>
-                  <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded ml-auto">REVIEW</span>
+      {/* ═══ DAILY RHYTHM ═══ */}
+      <section className="fade-up fade-up-5 mb-8">
+        <SectionHeader icon="🕐">Daily Rhythm</SectionHeader>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {DAILY_RHYTHM.map((block, i) => {
+            const isNow = i === 1 // midday
+            return (
+              <div key={block.period} className={`glass p-5 ${isNow ? 'border-cyan-500/20 glow-cyan' : ''}`}>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-lg">{block.icon}</span>
+                  <div>
+                    <p className="text-sm font-medium text-white/90">{block.period}</p>
+                    <p className="text-[10px] text-zinc-600">{block.time}</p>
+                  </div>
+                  {isNow && <span className="ml-auto text-[10px] text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/15">NOW</span>}
                 </div>
-              ))}
-            </div>
-          </section>
+                {block.finnDid.length > 0 && (
+                  <div className="mb-2">
+                    <p className="text-[10px] uppercase tracking-widest text-cyan-500/60 mb-1">Finn did</p>
+                    {block.finnDid.map((item, j) => (
+                      <p key={j} className="text-xs text-zinc-400 pl-2 py-0.5 border-l border-cyan-500/20">✓ {item}</p>
+                    ))}
+                  </div>
+                )}
+                {block.gavinsAttention.length > 0 && (
+                  <div className="mb-2">
+                    <p className="text-[10px] uppercase tracking-widest text-purple-500/60 mb-1">Needs Gavin</p>
+                    {block.gavinsAttention.map((item, j) => (
+                      <p key={j} className="text-xs text-zinc-400 pl-2 py-0.5 border-l border-purple-500/20">→ {item}</p>
+                    ))}
+                  </div>
+                )}
+                {block.comingUp.length > 0 && (
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest text-amber-500/60 mb-1">Coming up</p>
+                    {block.comingUp.map((item, j) => (
+                      <p key={j} className="text-xs text-zinc-400 pl-2 py-0.5 border-l border-amber-500/20">◦ {item}</p>
+                    ))}
+                  </div>
+                )}
+                {block.finnDid.length === 0 && block.gavinsAttention.length === 0 && block.comingUp.length === 0 && (
+                  <p className="text-xs text-zinc-600 italic">Upcoming…</p>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </section>
 
-          {/* Projects */}
-          <section className="card mb-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Zap className="w-5 h-5 text-yellow-400" />
-              <h2 className="font-semibold">Active Projects</h2>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {[
-                { name: 'Sprout Gifts', type: 'Product', revenue: '$4K project', status: '✅ Affiliate links LIVE!' },
-                { name: 'Real Worth', type: 'Product', revenue: '$30/mo', status: 'App Store Pending' },
-                { name: 'Bucket List Doctor', type: 'Client', revenue: '$1,000/mo', status: 'Active' },
-                { name: 'Oyster Bay Sites', type: 'Pipeline', revenue: 'TBD', status: 'Demo Site Next' },
-                { name: 'Job Search', type: 'Priority', revenue: 'Bridge Income', status: 'CockroachDB Fri 1/31 @ 10am' },
-              ].map((project, i) => (
-                <div key={i} className="p-3 bg-zinc-800/50 rounded-lg">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium">{project.name}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded ${
-                      project.type === 'Product' ? 'bg-purple-500/20 text-purple-400' :
-                      project.type === 'Priority' ? 'bg-red-500/20 text-red-400' :
-                      project.type === 'Pipeline' ? 'bg-green-500/20 text-green-400' :
-                      'bg-cyan-500/20 text-cyan-400'
-                    }`}>{project.type}</span>
-                  </div>
-                  <p className="text-sm text-green-400">{project.revenue}</p>
-                  <p className="text-xs text-zinc-500">{project.status}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-          
-          {/* Recent Wins */}
-          <section className="card mb-6 bg-gradient-to-r from-green-900/20 to-zinc-900">
-            <div className="flex items-center gap-2 mb-4">
-              <Trophy className="w-5 h-5 text-yellow-400" />
-              <h2 className="font-semibold">Recent Wins 🎉</h2>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="flex items-center gap-3 p-3 bg-zinc-800/30 rounded-lg">
-                <span className="text-2xl">💬</span>
-                <div>
-                  <p className="font-medium text-green-400">Slack Integration LIVE</p>
-                  <p className="text-xs text-zinc-400">Socket Mode • DMs • Channel monitoring • Jan 28</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 bg-zinc-800/30 rounded-lg">
-                <span className="text-2xl">🪳</span>
-                <div>
-                  <p className="font-medium text-green-400">CockroachDB Interview Prepped</p>
-                  <p className="text-xs text-zinc-400">Full research + voice notes + company guide review • Jan 28</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 bg-zinc-800/30 rounded-lg">
-                <span className="text-2xl">🐟</span>
-                <div>
-                  <p className="font-medium text-green-400">Finn Has a Face</p>
-                  <p className="text-xs text-zinc-400">Arcane-style avatar • Identity complete • Jan 28</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 bg-zinc-800/30 rounded-lg">
-                <span className="text-2xl">🚀</span>
-                <div>
-                  <p className="font-medium text-green-400">Sprout Affiliate Links LIVE</p>
-                  <p className="text-xs text-zinc-400">11 products • Babylist-style UI • Jan 27</p>
-                </div>
-              </div>
-            </div>
-          </section>
-        </>
-      ) : (
-        /* Kanban View */
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Today Column */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-            <h3 className="font-semibold mb-4 flex items-center gap-2">
-              <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-              Today
-              <span className="text-xs text-zinc-500 ml-auto">{getTasksByCategory('today').length}</span>
-            </h3>
-            <div className="space-y-2">
-              {getTasksByCategory('today').map(task => (
-                <div key={task.id} className={`p-3 rounded-lg border ${task.status === 'done' ? 'bg-zinc-800/30 border-zinc-800' : 'bg-zinc-800/50 border-zinc-700'}`}>
-                  <p className={`text-sm ${task.status === 'done' ? 'line-through text-zinc-500' : ''}`}>{task.title}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    {task.owner === 'finn' ? (
-                      <span className="text-xs text-cyan-400">🐟 Finn</span>
-                    ) : task.owner === 'review' ? (
-                      <span className="text-xs text-yellow-400">⏳ Review</span>
-                    ) : (
-                      <span className="text-xs text-purple-400">👤 Gavin</span>
-                    )}
-                    {task.priority === 'high' && <span className="text-xs bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded">!</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
+      {/* ═══ ACTION ITEMS ═══ */}
+      <section className="fade-up fade-up-6 grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+        {/* Finn's Tasks */}
+        <div className="glass p-5 sm:p-6">
+          <SectionHeader icon="🐟" badge={
+            <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/15">
+              {finnDone}/{FINN_TASKS.length}
+            </span>
+          }>
+            Finn&apos;s Tasks
+          </SectionHeader>
+          <div className="space-y-0.5">
+            {FINN_TASKS.map(task => <TaskRow key={task.id} task={task} />)}
           </div>
-          
-          {/* Recurring Column */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-            <h3 className="font-semibold mb-4 flex items-center gap-2">
-              <span className="w-2 h-2 bg-cyan-500 rounded-full"></span>
-              Recurring
-              <span className="text-xs text-zinc-500 ml-auto">{getTasksByCategory('recurring').length}</span>
-            </h3>
-            <div className="space-y-2">
-              {getTasksByCategory('recurring').map(task => (
-                <div key={task.id} className={`p-3 rounded-lg border ${task.status === 'done' ? 'bg-zinc-800/30 border-zinc-800' : 'bg-zinc-800/50 border-zinc-700'}`}>
-                  <p className={`text-sm ${task.status === 'done' ? 'line-through text-zinc-500' : ''}`}>{task.title}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-xs text-cyan-400">🐟 Finn</span>
-                    {task.status === 'done' && <span className="text-xs text-green-400 ml-auto">✓</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          
-          {/* Projects Column */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-            <h3 className="font-semibold mb-4 flex items-center gap-2">
-              <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
-              Projects
-              <span className="text-xs text-zinc-500 ml-auto">{getTasksByCategory('project').length}</span>
-            </h3>
-            <div className="space-y-2">
-              {getTasksByCategory('project').map(task => (
-                <div key={task.id} className={`p-3 rounded-lg border ${task.status === 'done' ? 'bg-zinc-800/30 border-zinc-800' : 'bg-zinc-800/50 border-zinc-700'}`}>
-                  <p className={`text-sm ${task.status === 'done' ? 'line-through text-zinc-500' : ''}`}>{task.title}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    {task.owner === 'finn' ? (
-                      <span className="text-xs text-cyan-400">🐟 Finn</span>
-                    ) : (
-                      <span className="text-xs text-purple-400">👤 Gavin</span>
-                    )}
-                    {task.status === 'done' && <span className="text-xs text-green-400 ml-auto">✓</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          
-          {/* Review Column */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-            <h3 className="font-semibold mb-4 flex items-center gap-2">
-              <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
-              Review Queue
-              <span className="text-xs text-zinc-500 ml-auto">{getTasksByCategory('review').length}</span>
-            </h3>
-            <div className="space-y-2">
-              {getTasksByCategory('review').map(task => (
-                <div key={task.id} className="p-3 rounded-lg border bg-yellow-500/5 border-yellow-500/20">
-                  <p className="text-sm">{task.title}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-xs text-yellow-400">⏳ Needs Review</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
+        </div>
 
-      {/* Footer */}
-      <footer className="text-center text-zinc-600 text-xs mt-8">
-        <p>Command Center v0.4 | Updated live by Finn 🐟</p>
-        <p className="mt-1">Last update: Jan 28 @ 2:45pm - Slack live, CockroachDB prepped, Finn has a face!</p>
+        {/* Gavin's Tasks */}
+        <div className="glass p-5 sm:p-6">
+          <SectionHeader icon="👤" badge={
+            <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/15">
+              {gavinDone}/{GAVIN_TASKS.length}
+            </span>
+          }>
+            Gavin&apos;s Tasks
+          </SectionHeader>
+          <div className="space-y-0.5">
+            {GAVIN_TASKS.map(task => <TaskRow key={task.id} task={task} />)}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ REVIEW QUEUE ═══ */}
+      <section className="fade-up fade-up-7 glass p-5 sm:p-6 mb-8">
+        <SectionHeader icon="⏳" badge={
+          <span className="text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/15">
+            {REVIEW_QUEUE.length} pending
+          </span>
+        }>
+          Review Queue
+        </SectionHeader>
+        <div className="space-y-0.5">
+          {REVIEW_QUEUE.map(item => (
+            <div key={item.id} className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-white/[0.02] transition-colors">
+              <PriorityDot priority={item.priority} />
+              <span className="text-sm text-zinc-200 flex-1">{item.title}</span>
+              <span className="text-[10px] text-amber-400/60 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/10">{item.type}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ═══ ACTIVE PROJECTS ═══ */}
+      <section className="fade-up fade-up-8 mb-8">
+        <SectionHeader icon="⚡">Active Projects</SectionHeader>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {PROJECTS.map((project, i) => (
+            <div key={i} className="glass p-5">
+              <div className="flex items-center justify-between mb-2">
+                <span className={`text-sm font-semibold ${project.color}`}>{project.name}</span>
+                <span className="text-[10px] text-zinc-500 bg-white/[0.03] px-2 py-0.5 rounded-full border border-white/[0.05]">{project.type}</span>
+              </div>
+              <p className="text-lg font-light text-white/80">{project.revenue}</p>
+              <p className="text-xs text-zinc-500 mt-1">{project.status}</p>
+              <div className="mt-3 pt-3 border-t border-white/[0.04]">
+                <p className="text-[10px] text-zinc-600 uppercase tracking-widest mb-0.5">Next</p>
+                <p className="text-xs text-zinc-400">{project.nextAction}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ═══ REVENUE & GOALS ═══ */}
+      <section className="fade-up fade-up-9 glass p-5 sm:p-6 mb-8 glow-green">
+        <SectionHeader icon="💰">Revenue &amp; Goals</SectionHeader>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mb-6">
+          <div>
+            <p className="text-3xl font-extralight text-emerald-400">${mrr.toLocaleString()}</p>
+            <p className="text-[10px] uppercase tracking-widest text-zinc-600 mt-1">Monthly MRR</p>
+            <p className="text-[10px] text-zinc-500 mt-0.5">$30 Stripe + $1K BLD</p>
+          </div>
+          <div>
+            <p className="text-3xl font-extralight text-white/80">${arr.toLocaleString()}</p>
+            <p className="text-[10px] uppercase tracking-widest text-zinc-600 mt-1">Current ARR</p>
+          </div>
+          <div>
+            <p className="text-3xl font-extralight text-emerald-400">${(oneTime / 1000).toFixed(0)}K</p>
+            <p className="text-[10px] uppercase tracking-widest text-zinc-600 mt-1">One-time received</p>
+          </div>
+          <div>
+            <p className="text-3xl font-extralight text-white/40">${((mrr * 12 + oneTime) / 1000).toFixed(0)}K</p>
+            <p className="text-[10px] uppercase tracking-widest text-zinc-600 mt-1">Total earned</p>
+          </div>
+        </div>
+
+        {/* Progress bars */}
+        <div className="space-y-4">
+          {[
+            { label: '$500K ARR', target: 500000, color: 'from-emerald-500 to-green-400' },
+            { label: '$1M ARR', target: 1000000, color: 'from-yellow-500 to-amber-400' },
+            { label: '$5M ARR', target: 5000000, color: 'from-purple-500 to-violet-400' },
+          ].map((goal) => {
+            const pct = (arr / goal.target) * 100
+            return (
+              <div key={goal.label}>
+                <div className="flex justify-between text-xs mb-1.5">
+                  <span className="text-zinc-500">{goal.label}</span>
+                  <span className="text-zinc-400 font-mono">{pct.toFixed(2)}%</span>
+                </div>
+                <div className="h-1.5 bg-white/[0.03] rounded-full overflow-hidden">
+                  <div
+                    className={`h-full bg-gradient-to-r ${goal.color} progress-bar rounded-full`}
+                    style={{ width: `${Math.max(pct, 0.5)}%` }}
+                  />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </section>
+
+      {/* ═══ RECENT WINS ═══ */}
+      <section className="fade-up fade-up-10 glass p-5 sm:p-6 mb-8 bg-gradient-to-br from-emerald-950/10 to-transparent">
+        <SectionHeader icon="🏆">Recent Wins</SectionHeader>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {RECENT_WINS.map((win, i) => (
+            <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.03] hover:border-emerald-500/10 transition-colors">
+              <span className="text-2xl">{win.icon}</span>
+              <div>
+                <p className="text-sm font-medium text-emerald-400">{win.title}</p>
+                <p className="text-xs text-zinc-500">{win.desc}</p>
+                <p className="text-[10px] text-zinc-600 mt-0.5">{win.date}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ═══ FOOTER ═══ */}
+      <footer className="fade-up text-center py-8">
+        <p className="text-xs text-zinc-600">
+          Command Center v1.0 &nbsp;|&nbsp; Gavin + Finn 🐟 &nbsp;|&nbsp; Why Not Us?
+        </p>
       </footer>
     </main>
   )
