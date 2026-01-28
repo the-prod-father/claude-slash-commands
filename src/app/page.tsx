@@ -186,39 +186,26 @@ function CategoryBadge({ category }: { category: string }) {
   )
 }
 
-function DraftCard({ draft, onApprove, onReject }: {
+function InboxDraftCard({ draft, onSend, onSave }: {
   draft: Draft
-  onApprove: (id: string) => void
-  onReject: (id: string, note?: string) => void
+  onSend: (id: string, body: string) => void
+  onSave: (id: string) => void
 }) {
-  const [status, setStatus] = useState<'idle' | 'approved' | 'rejected' | 'rejecting'>('idle')
-  const [rejectNote, setRejectNote] = useState('')
+  const [mode, setMode] = useState<'view' | 'edit'>('view')
+  const [editBody, setEditBody] = useState(draft.body)
+  const [status, setStatus] = useState<'idle' | 'sent' | 'saved'>('idle')
 
-  const handleApprove = () => {
-    setStatus('approved')
-    onApprove(draft.id)
-  }
-
-  const handleReject = () => {
-    if (status === 'rejecting') {
-      setStatus('rejected')
-      onReject(draft.id, rejectNote || undefined)
-    } else {
-      setStatus('rejecting')
-    }
-  }
-
-  if (status === 'approved') {
+  if (status === 'sent') {
     return (
-      <div className="glass p-5 border-emerald-500/20 bg-emerald-950/10 transition-all duration-500">
+      <div className="glass p-5 border-emerald-500/20 bg-emerald-950/10 transition-all duration-500 animate-fade-slide-out">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-            <svg className="w-5 h-5 text-emerald-400 animate-scale-in" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
+            <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
           <div>
-            <p className="text-sm font-medium text-emerald-400">Approved & Queued</p>
+            <p className="text-sm font-medium text-emerald-400">Sent ✓</p>
             <p className="text-xs text-zinc-500">{draft.subject}</p>
           </div>
         </div>
@@ -226,15 +213,15 @@ function DraftCard({ draft, onApprove, onReject }: {
     )
   }
 
-  if (status === 'rejected') {
+  if (status === 'saved') {
     return (
-      <div className="glass p-5 border-red-500/10 bg-red-950/5 transition-all duration-500 opacity-60">
+      <div className="glass p-5 border-cyan-500/20 bg-cyan-950/10 transition-all duration-500">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
-            <span className="text-red-400 text-sm">✕</span>
+          <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center">
+            <span className="text-cyan-400 text-sm">💾</span>
           </div>
           <div>
-            <p className="text-sm font-medium text-red-400/80">Rejected</p>
+            <p className="text-sm font-medium text-cyan-400">Saved for later</p>
             <p className="text-xs text-zinc-500">{draft.subject}</p>
           </div>
         </div>
@@ -243,10 +230,11 @@ function DraftCard({ draft, onApprove, onReject }: {
   }
 
   return (
-    <div className="glass p-5 hover:border-white/[0.08] transition-all duration-300 group">
+    <div className="glass p-5 hover:border-white/[0.08] transition-all duration-300">
+      {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             <CategoryBadge category={draft.category} />
             <span className="text-[10px] text-zinc-600 font-mono">
               {new Date(draft.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
@@ -257,52 +245,51 @@ function DraftCard({ draft, onApprove, onReject }: {
         </div>
       </div>
 
-      <div className="bg-white/[0.02] rounded-lg p-3 mb-4 border border-white/[0.03]">
-        <p className="text-xs text-zinc-400 whitespace-pre-line leading-relaxed">{draft.body}</p>
-      </div>
-
-      {status === 'rejecting' ? (
-        <div className="space-y-3">
-          <input
-            type="text"
-            placeholder="Feedback note (optional)..."
-            value={rejectNote}
-            onChange={(e) => setRejectNote(e.target.value)}
-            className="w-full bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-red-500/30"
-            autoFocus
-            onKeyDown={(e) => { if (e.key === 'Enter') handleReject(); if (e.key === 'Escape') setStatus('idle') }}
-          />
-          <div className="flex gap-2">
-            <button
-              onClick={handleReject}
-              className="flex-1 py-2 rounded-lg text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all"
-            >
-              Confirm Reject
-            </button>
-            <button
-              onClick={() => setStatus('idle')}
-              className="px-4 py-2 rounded-lg text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
+      {/* Body */}
+      {mode === 'edit' ? (
+        <textarea
+          value={editBody}
+          onChange={(e) => setEditBody(e.target.value)}
+          className="w-full bg-white/[0.03] rounded-lg p-3 mb-4 border border-amber-500/20 text-xs text-zinc-300 leading-relaxed focus:outline-none focus:border-amber-500/40 resize-y min-h-[100px] placeholder-zinc-600"
+          rows={6}
+          autoFocus
+        />
       ) : (
-        <div className="flex gap-2">
-          <button
-            onClick={handleApprove}
-            className="flex-1 py-2.5 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 hover:shadow-[0_0_20px_rgba(16,185,129,0.15)] active:scale-[0.98] transition-all duration-200"
-          >
-            ✅ Approve &amp; Send
-          </button>
-          <button
-            onClick={handleReject}
-            className="px-4 py-2.5 rounded-lg text-xs font-medium text-red-400/60 border border-red-500/10 hover:bg-red-500/10 hover:text-red-400 active:scale-[0.98] transition-all duration-200"
-          >
-            ✕ Reject
-          </button>
+        <div className="bg-white/[0.02] rounded-lg p-3 mb-4 border border-white/[0.03]">
+          <p className="text-xs text-zinc-400 whitespace-pre-line leading-relaxed">{draft.body}</p>
         </div>
       )}
+
+      {/* Buttons */}
+      <div className="flex gap-2 flex-wrap">
+        <button
+          onClick={() => { setStatus('sent'); onSend(draft.id, mode === 'edit' ? editBody : draft.body) }}
+          className="px-4 py-2 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 hover:shadow-[0_0_15px_rgba(16,185,129,0.15)] active:scale-[0.97] transition-all duration-200"
+        >
+          ✅ Send
+        </button>
+        <button
+          onClick={() => { setStatus('saved'); onSave(draft.id) }}
+          className="px-4 py-2 rounded-full text-xs font-medium bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20 hover:shadow-[0_0_15px_rgba(6,182,212,0.15)] active:scale-[0.97] transition-all duration-200"
+        >
+          💾 Save
+        </button>
+        {mode === 'view' ? (
+          <button
+            onClick={() => setMode('edit')}
+            className="px-4 py-2 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 hover:shadow-[0_0_15px_rgba(245,158,11,0.15)] active:scale-[0.97] transition-all duration-200"
+          >
+            ✏️ Edit
+          </button>
+        ) : (
+          <button
+            onClick={() => { setMode('view'); setEditBody(draft.body) }}
+            className="px-4 py-2 rounded-full text-xs font-medium bg-zinc-500/10 text-zinc-400 border border-zinc-500/20 hover:bg-zinc-500/20 active:scale-[0.97] transition-all duration-200"
+          >
+            Cancel
+          </button>
+        )}
+      </div>
     </div>
   )
 }
@@ -319,6 +306,10 @@ export default function Dashboard() {
   const [activity, setActivity] = useState<ActivityItem[]>([])
   const [inboxStatus, setInboxStatus] = useState<InboxStatus>({ lastReviewed: null, pendingCount: 0, urgentCount: 0 })
   const [lastReviewedAgo, setLastReviewedAgo] = useState('…')
+  const [inboxExpanded, setInboxExpanded] = useState(false)
+  const [inboxDrafts, setInboxDrafts] = useState<Draft[]>([])
+  const [inboxDraftsLoaded, setInboxDraftsLoaded] = useState(false)
+  const [sentCount, setSentCount] = useState(0)
 
   const fetchAll = useCallback(async () => {
     const [tasksRes, draftsRes, activityRes, inboxRes] = await Promise.all([
@@ -363,8 +354,6 @@ export default function Dashboard() {
   const gavinTasks = tasks.filter(t => t.owner === 'gavin')
   const finnDone = finnTasks.filter(t => t.status === 'done').length
   const gavinDone = gavinTasks.filter(t => t.status === 'done').length
-  const pendingDrafts = drafts.filter(d => d.status === 'pending')
-
   const mrr = 1030
   const arr = mrr * 12
   const oneTime = 17000
@@ -374,18 +363,30 @@ export default function Dashboard() {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, status: 'done' } : t))
   }
 
-  const handleApproveDraft = async (id: string) => {
-    await fetch(`/api/drafts/${id}/send`, { method: 'POST' })
-    setDrafts(prev => prev.map(d => d.id === id ? { ...d, status: 'approved' } : d))
+  const handleToggleInbox = async () => {
+    const next = !inboxExpanded
+    setInboxExpanded(next)
+    if (next && !inboxDraftsLoaded) {
+      const res = await fetch('/api/drafts').then(r => r.json()).catch(() => [])
+      setInboxDrafts(res.filter((d: Draft) => d.status === 'pending'))
+      setInboxDraftsLoaded(true)
+    }
   }
 
-  const handleRejectDraft = async (id: string, note?: string) => {
-    await fetch(`/api/drafts/${id}/reject`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ note }),
-    })
-    setDrafts(prev => prev.map(d => d.id === id ? { ...d, status: 'rejected' } : d))
+  const handleSendDraft = async (id: string, _body: string) => {
+    await fetch(`/api/drafts/${id}/send`, { method: 'POST' })
+    setSentCount(c => c + 1)
+    setInboxStatus(prev => ({ ...prev, pendingCount: Math.max(0, prev.pendingCount - 1) }))
+    setTimeout(() => {
+      setInboxDrafts(prev => prev.filter(d => d.id !== id))
+    }, 1500)
+  }
+
+  const handleSaveDraft = (_id: string) => {
+    // keep in list but show saved confirmation briefly
+    setTimeout(() => {
+      setInboxDrafts(prev => prev.filter(d => d.id !== _id))
+    }, 1500)
   }
 
   return (
@@ -453,39 +454,54 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* ═══ INBOX STATUS ═══ */}
-      <div className="fade-up fade-up-3 glass px-5 py-3 mb-8 flex items-center gap-4 text-xs">
-        <span className={`w-2 h-2 rounded-full pulse-dot ${inboxStatus.urgentCount > 0 ? 'bg-red-400' : 'bg-emerald-400'}`} />
-        <span className="text-zinc-400">Inbox</span>
-        <span className="text-zinc-300">Last reviewed: {lastReviewedAgo}</span>
-        <span className="text-zinc-600">•</span>
-        <span className="text-zinc-300">{inboxStatus.pendingCount} drafts pending</span>
-        <span className="text-zinc-600">•</span>
-        <span className={inboxStatus.urgentCount > 0 ? 'text-red-400 font-medium' : 'text-zinc-300'}>{inboxStatus.urgentCount} urgent</span>
-      </div>
+      {/* ═══ INBOX STATUS (Interactive) ═══ */}
+      <div className="fade-up fade-up-3 mb-8">
+        <button
+          onClick={handleToggleInbox}
+          className="w-full glass px-5 py-3 flex items-center gap-4 text-xs cursor-pointer hover:border-white/[0.1] transition-all duration-300 group"
+        >
+          <span className={`w-2 h-2 rounded-full pulse-dot ${inboxStatus.urgentCount > 0 ? 'bg-red-400' : 'bg-emerald-400'}`} />
+          <span className="text-zinc-400">Inbox</span>
+          <span className="text-zinc-300">Last reviewed: {lastReviewedAgo}</span>
+          <span className="text-zinc-600 hidden sm:inline">•</span>
+          <span className="text-zinc-300 hidden sm:inline">{Math.max(0, inboxStatus.pendingCount - sentCount)} drafts pending</span>
+          <span className="text-zinc-600 hidden sm:inline">•</span>
+          <span className={`hidden sm:inline ${inboxStatus.urgentCount > 0 ? 'text-red-400 font-medium' : 'text-zinc-300'}`}>{inboxStatus.urgentCount} urgent</span>
+          <svg
+            className={`w-4 h-4 text-zinc-500 ml-auto transition-transform duration-300 ${inboxExpanded ? 'rotate-180' : ''}`}
+            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
 
-      {/* ═══ DRAFT REVIEW ═══ */}
-      {pendingDrafts.length > 0 && (
-        <section className="fade-up fade-up-4 mb-8">
-          <SectionHeader icon="✉️" badge={
-            <span className="text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/15 px-2.5 py-1 rounded-full font-medium">
-              {pendingDrafts.length} to review
-            </span>
-          }>
-            Draft Review
-          </SectionHeader>
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-            {drafts.map(draft => (
-              <DraftCard
-                key={draft.id}
-                draft={draft}
-                onApprove={handleApproveDraft}
-                onReject={handleRejectDraft}
-              />
-            ))}
-          </div>
-        </section>
-      )}
+        {/* Expandable Draft Panel */}
+        <div
+          className={`overflow-hidden transition-all duration-500 ease-in-out ${inboxExpanded ? 'max-h-[2000px] opacity-100 mt-4' : 'max-h-0 opacity-0'}`}
+        >
+          {inboxDrafts.length > 0 ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {inboxDrafts.map(draft => (
+                <InboxDraftCard
+                  key={draft.id}
+                  draft={draft}
+                  onSend={handleSendDraft}
+                  onSave={handleSaveDraft}
+                />
+              ))}
+            </div>
+          ) : inboxDraftsLoaded ? (
+            <div className="glass p-8 text-center">
+              <p className="text-2xl mb-2">✨</p>
+              <p className="text-sm text-zinc-400">All caught up</p>
+            </div>
+          ) : (
+            <div className="glass p-6 text-center">
+              <p className="text-xs text-zinc-500">Loading drafts…</p>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* ═══ FINN ACTIVITY FEED ═══ */}
       <section className="fade-up fade-up-4 glass p-5 sm:p-6 mb-8 glow-cyan">
